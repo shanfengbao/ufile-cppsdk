@@ -5,6 +5,7 @@
 #include <ufile-cppsdk/download.h>
 #include <ufile-cppsdk/mput.h>
 #include <ufile-cppsdk/put.h>
+#include <ufile-cppsdk/list.h>
 
 #include <ufile-cppsdk/errno.h>
 
