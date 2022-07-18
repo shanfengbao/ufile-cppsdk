@@ -157,27 +157,15 @@ std::string UFileDigest::CanonicalizedUCloudHeaders(HTTPRequest *http) {
 }
 
 std::string UFileDigest::CanonicalizedURLParams(std::string action,
-      std::map<std::string, std::string> params) {
-  /*
+      std::map<std::string, std::string> params) { 
   if (action.empty()) {
     return "";
   }
   std::string result = "\n" + action;
-    for (auto it = params.begin(); it != params.end(); ++it) {
-      result += "\n" + it->first + ":" + it->second;
-    }
+  for (auto it = params.begin(); it != params.end(); ++it) {
+    result += "\n" + it->first + ":" + it->second;
   }
-  return result;
-  */
-  std::string result = "";
-  if (action == "listobjects") {
-    result = "\nlistobjects]";
-    result += "\ndelimiter:" + params["delimiter"];
-    result += "\nmarker:" + params["marker"];
-    result += "\nmax-keys:" + params["max-keys"];
-    result += "\nprefix:" + params["prefix"];
-    return result;
-  }
+  
   return result;
 }
 

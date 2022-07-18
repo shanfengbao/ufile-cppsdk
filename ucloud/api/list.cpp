@@ -9,6 +9,7 @@
 #include <ufile-cppsdk/errno.h>
 #include <ufile-cppsdk/http.h>
 #include <ufile-cppsdk/urlcodec.h>
+#include <ufile-cppsdk/json_util.h>
 
 #define LIST_MAX_COUNT (1000)
 
@@ -27,7 +28,7 @@ UFileList::UFileList() : delimiter_("") {}
 UFileList::~UFileList() {}
 
 int UFileList::List(const std::string &bucket, const std::string &prefix,
-                    uint32_t count, ListResultEntry *result,
+                    uint32_t count, ListResult *result,
                     bool *is_truncated, std::string *next_marker,
                     const std::string &marker) {
 	int64_t ret = InitGlobalConfig();
@@ -84,7 +85,12 @@ int UFileList::List(const std::string &bucket, const std::string &prefix,
     }
     UFILE_SET_ERROR2(ret, errmsg);
   } else {
-    std::cout << oss.str().c_str();
+    int parse_ret = ParseRsp(oss.str().c_str(), result,
+                             is_truncated, next_marker);
+    if (parse_ret) {
+      UFILE_SET_ERROR(ERR_CPPSDK_CLIENT_INTERNAL);
+      return ERR_CPPSDK_CLIENT_INTERNAL;
+    }
   }
   return ret;
 }
@@ -101,11 +107,116 @@ void UFileList::SetResource(const std::string &bucket,
 
 void UFileList::SetURL(std::map<std::string, std::string> params) {
   std::string url = UFileHost(bucket_);
-  url = url + "/?listobjects";
+  url = url + "?listobjects";
   for (auto it = params.begin(); it != params.end(); ++it) {
     url = url + "&" + it->first + "=" + it->second;
   }
   m_http->SetURL(url);
+}
+
+int UFileList::ParseRsp(const char *body, ListResult *result,
+    bool *is_truncated, std::string *next_marker,
+    std::list<std::string> *prefixes) {
+	json_object *root = json_tokener_parse(body);
+  if (!root) {
+    return -1;
+  }
+
+  int ret = JsonGetBool(root, "IsTruncated", *is_truncated);
+  if (ret) {
+    json_object_put(root);
+    return ret;
+  }
+
+  ret = JsonGetString(root, "NextMarker", *next_marker);
+  if (ret) {
+    json_object_put(root);
+    return ret;
+  }
+
+  json_object *contents;
+	ret = JsonGetArray(root, "Contents", contents);
+  if (ret) {
+    json_object_put(root);
+    return ret;
+  }
+  int num_key = json_object_array_length(contents);
+  for (int i = 0; i < num_key; i++) {
+    json_object *content = json_object_array_get_idx(contents, i);
+    ListResultEntry entry;
+    ret = JsonGetString(content, "Key", entry.filename);
+    if (ret) {
+			json_object_put(root);
+ 			return ret;
+		}
+
+    ret = JsonGetString(content, "MimeType", entry.mime_type);
+    if (ret) {
+			json_object_put(root);
+ 			return ret;
+		}
+
+    ret = JsonGetString(content, "ETag", entry.etag);
+    if (ret) {
+      ret = JsonGetString(content, "Etag", entry.etag);
+      if (ret) {
+			  json_object_put(root);
+ 			  return ret;
+		  }
+		}
+
+    std::string size_str;
+    ret = JsonGetString(content, "Size", size_str);
+    if (ret) {
+			json_object_put(root);
+ 			return ret;
+		}
+    entry.size = std::stol(size_str);
+
+    ret = JsonGetString(content, "StorageClass", entry.storage_class);
+    if (ret) {
+			json_object_put(root);
+ 			return ret;
+		}
+
+    int64_t value;
+    ret = JsonGetInt64(content, "LastModified", value);
+    if (ret) {
+			json_object_put(root);
+ 			return ret;
+		}
+    entry.last_modified = value;
+
+    ret = JsonGetInt64(content, "CreateTime", value);
+    if (ret) {
+			json_object_put(root);
+ 			return ret;
+		}
+    entry.create_time = value;
+
+    result->push_back(entry);
+  }
+
+  // for ListDir
+  if (prefixes != nullptr) {
+ 		json_object *common_prefixes;
+  	ret = JsonGetArray(root, "CommonPrefixes", common_prefixes); 
+  	int num_key = json_object_array_length(common_prefixes);
+  	for (int i = 0; i < num_key; i++) {
+			json_object *common_prefix = json_object_array_get_idx(
+																	 common_prefixes, i);
+      std::string prefix;
+      ret = JsonGetString(common_prefix, "Prefix", prefix);
+      if (ret) {
+        json_object_put(root);
+    		return ret;
+      } 
+			prefixes->push_back(prefix);
+		}	
+  }
+
+  json_object_put(root);
+  return 0;
 }
 
 } // namespace api

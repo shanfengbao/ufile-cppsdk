@@ -11,7 +11,7 @@ namespace cppsdk {
 namespace api {
 
 struct ListResultEntry {
-  std::string filenamea; // 文件名称
+  std::string filename; // 文件名称
   std::string mime_type; // 文件mimetype
   std::string etag; // 标识文件内容
   uint64_t size; // 文件大小
@@ -44,7 +44,7 @@ public:
    * @return: 0=成功，非0=失败
    */
   int List(const std::string &bucket, const std::string &prefix,
-           uint32_t count, ListResultEntry *result,
+           uint32_t count, ListResult *result,
            bool *is_truncated, std::string *next_marker,
            const std::string &marker = "");
 
@@ -54,7 +54,9 @@ private:
 
   void SetURL(std::map<std::string, std::string> params);
 
-  // int ParseRsp(const char *body, int64_t *retcode, std::string &errmsg);
+  int ParseRsp(const char *body, ListResult *result,
+      bool *is_truncated, std::string *next_marker,
+      std::list<std::string> *prefixes = nullptr);
 
   std::string bucket_;
   std::string prefix_;
