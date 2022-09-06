@@ -84,6 +84,9 @@ int UFileMput::MInit() {
   if (ret)
     return ret;
 
+  m_uploaded_size = 0;
+  m_etag_list.clear();
+
   std::string signature("");
   //构建 HTTP 头部
   m_http->Reset();
