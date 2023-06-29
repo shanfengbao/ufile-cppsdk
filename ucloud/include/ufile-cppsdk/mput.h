@@ -52,7 +52,7 @@ public:
    */
   int MInit();
   /*
-   * @brief: 从一个已存在的Object中拷贝数据来上传一个Part
+   * @brief: 上传文件分片
    * @blk_idx: 分片编号
    * @return: 0=成功，非0=失败
    */
@@ -69,8 +69,8 @@ public:
    * @return: 0=成功，非0=失败
    */
   int MUploadCopyPart(ssize_t blk_idx, std::string src_bucket_name,
-      std::string src_object, size_t offset, size_t length,
-      std::string mimetype = "application/octet-stream");
+                      std::string src_object, size_t offset, size_t length,
+                      std::string mimetype = "application/octet-stream");
 
   /*
    * @brief: 分片上传完成

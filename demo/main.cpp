@@ -19,7 +19,9 @@ void help() {
   std::cerr << "./demo download2 bucket key storedfile [range_begin-range_end]"
             << std::endl;
   std::cerr << "./demo showurl bucket key [expires]" << std::endl;
-  std::cerr << "./demo mputcopypart src_bucket src_key src_offset dst_bucket dst_key size [mimetype]"  << std::endl;
+  std::cerr << "./demo mputcopypart src_bucket src_key src_offset dst_bucket "
+               "dst_key size [mimetype]"
+            << std::endl;
 }
 
 //普通上传
@@ -111,7 +113,9 @@ int mputfile(int argc, char **argv) {
 int mputcopypart(int argc, char **argv) {
 
   if (argc < 6 || argc > 7) {
-    std::cerr << "./demo mputcopypart src_bucket src_key src_offset dst_bucket dst_key size [mimetype]" << std::endl;
+    std::cerr << "./demo mputcopypart src_bucket src_key src_offset dst_bucket "
+                 "dst_key size [mimetype]"
+              << std::endl;
     return -1;
   }
 
@@ -142,7 +146,8 @@ int mputcopypart(int argc, char **argv) {
     if (left < blk_size) {
       blk_size = left;
     }
-    ret = uploader.MUploadCopyPart(blk++, argv[0], argv[1], src_offset, blk_size, mimetype);
+    ret = uploader.MUploadCopyPart(blk++, argv[0], argv[1], src_offset,
+                                   blk_size, mimetype);
     if (ret) {
       std::cerr << "mputcopypart error: retcode=" << UFILE_LAST_RETCODE()
                 << ", errmsg=" << UFILE_LAST_ERRMSG() << std::endl;

@@ -223,8 +223,9 @@ int UFileMput::MUpload(ssize_t blk_idx) {
 }
 
 int UFileMput::MUploadCopyPart(ssize_t blk_idx, std::string src_bucket_name,
-    std::string src_object, size_t offset, size_t length, std::string mimetype) {
-  
+                               std::string src_object, size_t offset,
+                               size_t length, std::string mimetype) {
+
   int64_t ret = InitGlobalConfig();
   if (ret)
     return ret;
@@ -237,8 +238,13 @@ int UFileMput::MUploadCopyPart(ssize_t blk_idx, std::string src_bucket_name,
   //构建 HTTP 头部
   m_http->Reset();
   m_http->SetVerb("PUT");
-  m_http->AddHeader("X-Ufile-Copy-Source", std::string("/") + std::string(src_bucket_name) + std::string("/") + std::string(src_object));
-  m_http->AddHeader("X-Ufile-Copy-Source-Range", std::string("bytes=") + std::string(SIZET2STR(offset)) + std::string("-") + std::string(SIZET2STR(offset + length - 1)));
+  m_http->AddHeader("X-Ufile-Copy-Source",
+                    std::string("/") + std::string(src_bucket_name) +
+                        std::string("/") + std::string(src_object));
+  m_http->AddHeader("X-Ufile-Copy-Source-Range",
+                    std::string("bytes=") + std::string(SIZET2STR(offset)) +
+                        std::string("-") +
+                        std::string(SIZET2STR(offset + length - 1)));
   m_http->AddHeader("Content-Type", mimetype);
   m_http->AddHeader("Content-Length", SIZET2STR(0));
   m_http->AddHeader("User-Agent", USERAGENT);
