@@ -1,6 +1,14 @@
+#include <iostream>
+#include <sstream>
+#include <string>
 #include <ufile-cppsdk/common.h>
-#include <ufile-cppsdk/tag.h>
+#include <ufile-cppsdk/config.h>
+#include <ufile-cppsdk/digest.h>
+#include <ufile-cppsdk/errno.h>
 #include <ufile-cppsdk/json_util.h>
+#include <ufile-cppsdk/string_util.h>
+#include <ufile-cppsdk/tagging.h>
+#include <ufile-cppsdk/urlcodec.h>
 
 using namespace ucloud::cppsdk::config;
 using namespace ucloud::cppsdk::digest;
@@ -16,8 +24,8 @@ UFileTagging::UFileTagging() : APIBase() {}
 
 UFileTagging::~UFileTagging() {}
 
-int UFileTagging::PutTagging(const std::string &bucket,
-    const std::string &key, std::map<std::string, std::string> &tags) {
+int UFileTagging::PutTagging(const std::string &bucket, const std::string &key,
+                             std::map<std::string, std::string> &tags) {
   int64_t ret = InitGlobalConfig();
   if (ret)
     return ret;
@@ -49,8 +57,12 @@ int UFileTagging::PutTagging(const std::string &bucket,
   //设置数据源
   std::ostringstream oss;
   UCloudOStream data_stream(&oss);
-  UCloudHTTPReadParam rp =
-      {f : NULL, is : is, fsize : tag_str.size(), need_total_n : tag_str.size()};
+  UCloudHTTPReadParam rp = {
+    f : NULL,
+    is : is,
+    fsize : tag_str.size(),
+    need_total_n : tag_str.size()
+  };
   UCloudHTTPWriteParam wp = {f : NULL, os : &data_stream};
   ret = m_http->RoundTrip(&rp, &wp, NULL);
   if (ret) {
@@ -78,8 +90,8 @@ int UFileTagging::PutTagging(const std::string &bucket,
   return ret;
 }
 
-int UFileTagging::GetTagging(const std::string &bucket,
-    const std::string &key, std::map<std::string, std::string> *tags) {
+int UFileTagging::GetTagging(const std::string &bucket, const std::string &key,
+                             std::map<std::string, std::string> *tags) {
   int64_t ret = InitGlobalConfig();
   if (ret)
     return ret;
@@ -126,8 +138,7 @@ int UFileTagging::GetTagging(const std::string &bucket,
     }
     UFILE_SET_ERROR2(ret, errmsg);
   } else {
-    int parse_ret = ParseTaggingFromJsonString(
-        oss.str().c_str(), tags);
+    int parse_ret = ParseTaggingFromJsonString(oss.str().c_str(), tags);
     if (parse_ret) {
       UFILE_SET_ERROR(ERR_CPPSDK_PARSE_JSON);
       return ERR_CPPSDK_PARSE_JSON;
@@ -137,7 +148,7 @@ int UFileTagging::GetTagging(const std::string &bucket,
 }
 
 int UFileTagging::DeleteTagging(const std::string &bucket,
-                            const std::string &key) {
+                                const std::string &key) {
   int64_t ret = InitGlobalConfig();
   if (ret)
     return ret;
@@ -177,7 +188,7 @@ int UFileTagging::DeleteTagging(const std::string &bucket,
   }
 
   std::string errmsg;
-  if (code != 200) {
+  if (code != 200 && code != 204) {
     int parse_ret = UFileErrorRsp(oss.str().c_str(), &ret, errmsg);
     if (parse_ret) {
       UFILE_SET_ERROR(ERR_CPPSDK_CLIENT_INTERNAL);
@@ -188,8 +199,8 @@ int UFileTagging::DeleteTagging(const std::string &bucket,
   return ret;
 }
 
-int UFileTagging::TaggingToJsonString(
-    std::map<std::string, std::string> &tags, std::string *json_str) {
+int UFileTagging::TaggingToJsonString(std::map<std::string, std::string> &tags,
+                                      std::string *json_str) {
   /*
   example:
   {
@@ -210,14 +221,32 @@ int UFileTagging::TaggingToJsonString(
     return -1;
   }
 
+  json_object *json_array = json_object_new_array();
+  if (!json_array) {
+    json_object_put(root);
+    return -1;
+  }
+  if (json_object_object_add(root, "Tags", json_array) != 0) {
+    json_object_put(root);
+    json_object_put(json_array);
+    return -1;
+  }
+
   for (auto it = tags.begin(); it != tags.end(); ++it) {
     json_object *tag = json_object_new_object();
-    if (json_object_object_add(tag, "Key", json_object_new_string(it->first.c_str())) != 0 ||
-        json_object_object_add(tag, "Value", json_object_new_string(it->second.c_str())) != 0 ||
-        json_object_object_add(tag, "Value", json_object_new_string(it->second.c_str())) != 0 ||
-        json_object_array_add(root, tag) != 0) {
+    if (!tag) {
       json_object_put(root);
       return -1;
+    }
+    if (json_object_object_add(
+            tag, "Key", json_object_new_string(it->first.c_str())) != 0 ||
+        json_object_object_add(
+            tag, "Value", json_object_new_string(it->second.c_str())) != 0 ||
+        json_object_array_add(json_array, tag) != 0) {
+      json_object_put(root);
+      json_object_put(tag);
+      return -1;
+    }
   }
 
   *json_str = json_object_to_json_string(root);
@@ -227,19 +256,24 @@ int UFileTagging::TaggingToJsonString(
 
 int UFileTagging::ParseTaggingFromJsonString(
     const std::string &json_str, std::map<std::string, std::string> *tags) {
-  json_object *root = json_tokener_parse(body);
+  json_object *root = json_tokener_parse(json_str.c_str());
   if (!root) {
     return -1;
   }
 
-  if (!json_object_is_type(root, json_type_array)) {
+  json_object *json_array = json_object_object_get(root, "Tags");
+  if (!json_array) {
+    json_object_put(root);
+    return -1;
+  }
+  if (!json_object_is_type(json_array, json_type_array)) {
     json_object_put(root);
     return -1;
   }
 
-  size_t array_len = json_object_array_length(root);
+  size_t array_len = json_object_array_length(json_array);
   for (size_t i = 0; i < array_len; i++) {
-    json_object *tag = json_object_array_get_idx(root, i);
+    json_object *tag = json_object_array_get_idx(json_array, i);
     if (!tag) {
       json_object_put(root);
       return -1;
@@ -251,8 +285,7 @@ int UFileTagging::ParseTaggingFromJsonString(
       json_object_put(root);
       return -1;
     }
-    tags->insert(std::make_pair(
-        key, value));
+    tags->insert(std::make_pair(key, value));
   }
   json_object_put(root);
   return 0;

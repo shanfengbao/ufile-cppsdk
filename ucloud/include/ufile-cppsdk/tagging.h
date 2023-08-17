@@ -20,7 +20,7 @@ public:
    * @tags: tag集合
    */
   int PutTagging(const std::string &bucket, const std::string &key,
-             std::map<std::string, std::string> &tags);
+                 std::map<std::string, std::string> &tags);
 
   /*
    * @brief: 获取object的tag
@@ -29,7 +29,7 @@ public:
    * @tags: tag集合
    */
   int GetTagging(const std::string &bucket, const std::string &key,
-             std::map<std::string, std::string> *tags);
+                 std::map<std::string, std::string> *tags);
 
   /*
    * @brief: 删除object的tag
@@ -43,7 +43,7 @@ private:
                           std::string *json_str);
 
   int ParseTaggingFromJsonString(const std::string &json_str,
-                    std::map<std::string, std::string> *tags);
+                                 std::map<std::string, std::string> *tags);
 };
 
 } // namespace api

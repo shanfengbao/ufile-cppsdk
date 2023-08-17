@@ -24,10 +24,8 @@ void help() {
             << std::endl;
   std::cerr << "./demo puttagging bucket key tag1 value1 [tag2 value2 ...]"
             << std::endl;
-  std::cerr << "./demo gettagging bucket key"
-            << std::endl;
-  std::cerr << "./demo deletetagging bucket key"
-            << std::endl;
+  std::cerr << "./demo gettagging bucket key" << std::endl;
+  std::cerr << "./demo deletetagging bucket key" << std::endl;
 }
 
 //普通上传
@@ -281,8 +279,7 @@ int put_tagging(int argc, char **argv) {
 //获取tagging
 int get_tagging(int argc, char **argv) {
   if (argc != 2) {
-    std::cerr << "./demo gettagging bucket key"
-              << std::endl;
+    std::cerr << "./demo gettagging bucket key" << std::endl;
     return -1;
   }
 
@@ -309,8 +306,7 @@ int get_tagging(int argc, char **argv) {
 //删除tagging
 int delete_tagging(int argc, char **argv) {
   if (argc != 2) {
-    std::cerr << "./demo deletetagging bucket key"
-              << std::endl;
+    std::cerr << "./demo deletetagging bucket key" << std::endl;
     return -1;
   }
 
