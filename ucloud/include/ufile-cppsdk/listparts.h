@@ -1,6 +1,10 @@
 #ifndef _UFILESDK_CPP_UCLOUD_API_LISTPARTS_
 #define _UFILESDK_CPP_UCLOUD_API_LISTPARTS_
 
+#include <list>
+#include <string>
+#include <ufile-cppsdk/apibase.h>
+
 namespace ucloud {
 namespace cppsdk {
 namespace api {
@@ -39,11 +43,11 @@ public:
                 int32_t *next_marker, int32_t marker = 0);
 
 private:
-  void SetURL(std::map<std::string, std::string> params);
+  void SetURL(const std::string &bucket, std::map<std::string, std::string> params);
 
   int ParseRsp(const char *body, ListPartsResult *result, bool *is_truncated,
-               std::string *next_marker);
-}
+               int32_t *next_marker);
+};
 
 } // namespace api
 } // namespace cppsdk

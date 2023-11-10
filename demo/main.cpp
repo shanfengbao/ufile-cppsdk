@@ -326,7 +326,7 @@ int delete_tagging(int argc, char **argv) {
 }
 
 //分片上传并列出分片信息
-int mput_and_listparts(int argc, char **argc) {
+int mput_and_listparts(int argc, char **argv) {
   if (argc != 3) {
     std::cerr << "./demo mput_and_listparts bucket key file" << std::endl;
     return -1;
@@ -354,10 +354,8 @@ int mput_and_listparts(int argc, char **argc) {
 
   ssize_t blk = 0;
   while (uploader.UploadedSize() < size_t(st.st_size)) {
-    for (int i = 0; i < 20; ++i)
-      std::cerr << '\b';
-    std::cerr << "finished: " << uploader.UploadedSize() * 100 / st.st_size
-              << "%";
+    std::cout << "finished: " << uploader.UploadedSize() * 100 / st.st_size
+              << "%\r" << std::flush;
     ret = uploader.MUpload(blk++);
     if (ret) {
       std::cerr << "mupload error: retcode=" << UFILE_LAST_RETCODE()
@@ -365,7 +363,6 @@ int mput_and_listparts(int argc, char **argc) {
       return ret;
     }
   }
-  std::cerr << std::endl;
   std::cout << std::endl;
 
   std::string uploadid = uploader.GetUploadId();
@@ -373,9 +370,9 @@ int mput_and_listparts(int argc, char **argc) {
   ucloud::cppsdk::api::UFileListParts lister;
   ucloud::cppsdk::api::ListPartsResult result;
   bool is_truncated = true;
-  int64_t next_marker;
-  int64_t marker = 0; 
-  uint64_t total = 0;
+  int32_t next_marker;
+  int32_t marker = 0; 
+  uint32_t total = 0;
   while (is_truncated) {
     int ret = lister.ListParts(bucket_name, uploadid, 1000, &result,
         &is_truncated, &next_marker, marker);
@@ -399,7 +396,7 @@ int mput_and_listparts(int argc, char **argc) {
 
   std::cout << "Total Part Num: " << total << std::endl;
   for (auto it = result.begin(); it != result.end(); ++it) {
-    ListPartsResultEntry &part = *it;
+    ucloud::cppsdk::api::ListPartsResultEntry &part = *it;
     std::cout << "Part Number: " << part.part_number << " {" << std::endl;
     std::cout << "\tEtag: " << part.etag << std::endl;
     std::cout << "\tLastModified: " << part.last_modified << std::endl;
@@ -469,7 +466,7 @@ int dispatch(int argc, char **argv) {
     ret = get_tagging(argc - 1, argv + 1);
   } else if (memcmp(cmd, "deletetagging", strlen(cmd)) == 0) {
     ret = delete_tagging(argc - 1, argv + 1);
-  } else if (memcmp(cmd, "mput_and_listoarts", strlen(cmd)) == 0) {
+  } else if (memcmp(cmd, "mput_and_listparts", strlen(cmd)) == 0) {
     ret = mput_and_listparts(argc - 1, argv + 1);
   } else {
     std::cerr << "unknown command: " << cmd << std::endl;

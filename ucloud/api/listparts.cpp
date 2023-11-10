@@ -21,6 +21,10 @@ namespace ucloud {
 namespace cppsdk {
 namespace api {
 
+UFileListParts::UFileListParts() {}
+
+UFileListParts::~UFileListParts() {}
+
 int UFileListParts::ListParts(
     const std::string &bucket, const std::string &uploadid,
     uint32_t count, ListPartsResult *result, bool *is_truncated,
@@ -41,7 +45,7 @@ int UFileListParts::ListParts(
   params["uploadId"] = uploadid;
   params["max-parts"] = std::to_string(count);
   params["part-number-marker"] = std::to_string(marker);
-  SetURL(params);
+  SetURL(bucket, params);
 
   //使用 HTTP 信息构建签名
   UFileDigest digestor;
@@ -88,8 +92,9 @@ int UFileListParts::ListParts(
   return ret;
 }
 
-void UFileListParts::SetURL(std::map<std::string, std::string> params) {
-  std::string url = UFileHost(bucket_);
+void UFileListParts::SetURL(const std::string &bucket,
+      std::map<std::string, std::string> params) {
+  std::string url = UFileHost(bucket);
   url = url + "?muploadpart";
   for (auto it = params.begin(); it != params.end(); ++it) {
     url = url + "&" + it->first + "=" + it->second;
@@ -159,24 +164,6 @@ int UFileListParts::ParseRsp(const char *body,
       if (result) {
         result->push_back(entry);
       }
-    }
-  }
-
-  // for ListDir
-  if (prefixes != nullptr) {
-    json_object *common_prefixes;
-    ret = JsonGetArray(root, "CommonPrefixes", common_prefixes);
-    int num_key = json_object_array_length(common_prefixes);
-    for (int i = 0; i < num_key; i++) {
-      json_object *common_prefix =
-          json_object_array_get_idx(common_prefixes, i);
-      std::string prefix;
-      ret = JsonGetString(common_prefix, "Prefix", prefix);
-      if (ret) {
-        json_object_put(root);
-        return ret;
-      }
-      prefixes->push_back(prefix);
     }
   }
 
