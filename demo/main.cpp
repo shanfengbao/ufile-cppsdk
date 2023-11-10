@@ -374,7 +374,8 @@ int mput_and_listparts(int argc, char **argv) {
   int32_t marker = 0; 
   uint32_t total = 0;
   while (is_truncated) {
-    int ret = lister.ListParts(bucket_name, uploadid, 1000, &result,
+    ucloud::cppsdk::api::ListPartsResult batch;
+    int ret = lister.ListParts(bucket_name, uploadid, 1000, &batch,
         &is_truncated, &next_marker, marker);
     if (ret) {
       std::cerr << "listparts error: retcode=" << UFILE_LAST_RETCODE() \
@@ -383,7 +384,8 @@ int mput_and_listparts(int argc, char **argv) {
     }   
 
     marker = next_marker;
-    total += result.size(); 
+    total += batch.size(); 
+    result.insert(result.end(), batch.begin(), batch.end());
   }
 
   ret = uploader.MFinish(NULL);
